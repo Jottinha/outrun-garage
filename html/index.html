@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Outrun Garage</title>
+</head>
+<body>
+    <div id="app" style="display: none;">
+
+        <!-- Menu Principal -->
+        <div id="garage-menu" class="panel">
+            <div class="panel-header">
+                <h1>OUTRUN <span class="accent">GARAGE</span></h1>
+                <button class="btn-close" id="btn-close">&times;</button>
+            </div>
+            <div class="panel-body">
+                <div id="vehicle-list"></div>
+                <div id="no-vehicles" style="display: none;">
+                    <p>Nenhum veículo na garagem.</p>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <button id="btn-get-vehicle" class="btn btn-primary">+ PEGAR VEÍCULO</button>
+                <span id="vehicle-count" class="count"></span>
+            </div>
+        </div>
+
+        <!-- Seleção de Veículo -->
+        <div id="vehicle-picker" class="panel" style="display: none;">
+            <div class="panel-header">
+                <button class="btn-back" id="btn-back">&larr;</button>
+                <h1>SELECIONAR <span class="accent">VEÍCULO</span></h1>
+            </div>
+            <div class="panel-body">
+                <div id="picker-list" class="picker-grid"></div>
+            </div>
+        </div>
+
+        <!-- Customização -->
+        <div id="customize-menu" class="customize-panel" style="display: none;">
+            <div class="customize-header">
+                <h2>CUSTOMIZAR</h2>
+            </div>
+            <div class="customize-body">
+                <div id="category-list" class="category-list"></div>
+                <div id="options-panel" class="options-panel">
+                    <p class="options-hint">Selecione uma categoria</p>
+                </div>
+            </div>
+            <div class="customize-footer">
+                <button class="btn btn-success" id="btn-save">SALVAR</button>
+                <button class="btn btn-danger" id="btn-cancel">CANCELAR</button>
+            </div>
+        </div>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
