@@ -1,4 +1,5 @@
 local customsVehicle = nil
+local customsModel = nil
 
 local perfMods = {
     {id = 'engine',       label = 'Motor',       modType = 11},
@@ -16,8 +17,42 @@ local modLabels = {
     [3]  = 'Nível 4',
 }
 
-function OpenCustomsMenu(vehicle)
+-- Normaliza um valor para 0-100% contra um máximo de referência
+local function pct(value, max)
+    if not max or max <= 0 then return 0 end
+    local p = (value / max) * 100.0
+    if p < 0 then p = 0 elseif p > 100 then p = 100 end
+    return math.floor(p + 0.5)
+end
+
+-- Lê as natives de performance do veículo e devolve as 4 stats em porcentagem
+function GetVehicleStats(vehicle)
+    local ref = Config.PerfStats
+
+    -- Top speed real medido por modelo (Config.TopSpeeds). Fallback para a
+    -- estimativa do jogo se o modelo não estiver na tabela.
+    local speedKmh = (customsModel and Config.TopSpeeds[customsModel])
+        or (GetVehicleEstimatedMaxSpeed(vehicle) * 3.6)
+
+    return {
+        speed    = pct(speedKmh,                        ref.maxSpeed),
+        speedKmh = math.floor(speedKmh + 0.5),
+        accel    = pct(GetVehicleAcceleration(vehicle), ref.maxAccel),
+        braking  = pct(GetVehicleMaxBraking(vehicle),   ref.maxBraking),
+        traction = pct(GetVehicleMaxTraction(vehicle),  ref.maxTraction),
+    }
+end
+
+-- Reenvia as stats atualizadas para o NUI (chamado após cada modificação)
+local function SendStats()
+    if customsVehicle and DoesEntityExist(customsVehicle) then
+        SendNUIMessage({action = 'updateStats', stats = GetVehicleStats(customsVehicle)})
+    end
+end
+
+function OpenCustomsMenu(vehicle, model)
     customsVehicle = vehicle
+    customsModel = model
     SetVehicleModKit(vehicle, 0)
 
     local categories = {}
@@ -84,7 +119,7 @@ function OpenCustomsMenu(vehicle)
     }
 
     SetNuiFocus(true, true)
-    SendNUIMessage({action = 'openCustomize', categories = categories})
+    SendNUIMessage({action = 'openCustomize', categories = categories, stats = GetVehicleStats(vehicle)})
 end
 
 -- Aplicar mod de performance / rodas
@@ -92,6 +127,7 @@ RegisterNUICallback('applyMod', function(data, cb)
     cb('ok')
     if customsVehicle and DoesEntityExist(customsVehicle) then
         SetVehicleMod(customsVehicle, data.modType, data.index, false)
+        SendStats()
     end
 end)
 
@@ -100,6 +136,7 @@ RegisterNUICallback('applyToggle', function(data, cb)
     cb('ok')
     if customsVehicle and DoesEntityExist(customsVehicle) then
         ToggleVehicleMod(customsVehicle, data.modType, data.enabled)
+        SendStats()
     end
 end)
 
@@ -129,6 +166,7 @@ RegisterNUICallback('applyWheelType', function(data, cb)
         opts[#opts+1] = {index = i, label = 'Roda ' .. (i + 1), selected = (cur == i)}
     end
     SendNUIMessage({action = 'updateWheelOptions', options = opts})
+    SendStats()
 end)
 
 -- Película

@@ -188,7 +188,7 @@ RegisterNUICallback('customizeVehicle', function(data, cb)
         RenderScriptCams(true, true, 500, true, true)
 
         Wait(200)
-        OpenCustomsMenu(previewVehicle)
+        OpenCustomsMenu(previewVehicle, data.model)
     end)
 end)
 

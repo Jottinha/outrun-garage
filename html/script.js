@@ -57,6 +57,10 @@
                 break;
             case 'openCustomize':
                 showCustomize(data.categories);
+                updateStats(data.stats);
+                break;
+            case 'updateStats':
+                updateStats(data.stats);
                 break;
             case 'updateWheelOptions':
                 updateWheelOptions(data.options);
@@ -287,6 +291,27 @@
             });
             panel.appendChild(btn);
         });
+    }
+
+    function setBar(key, val) {
+        val = Math.max(0, Math.min(100, val || 0));
+        var fill = document.getElementById('stat-' + key);
+        var lbl = document.getElementById('stat-' + key + '-val');
+        if (fill) fill.style.width = val + '%';
+        if (lbl) lbl.textContent = val + '%';
+    }
+
+    function updateStats(stats) {
+        if (!stats) return;
+        setBar('speed', stats.speed);
+        // Velocidade mostra o km/h real ao lado da barra (não a %)
+        var speedLbl = document.getElementById('stat-speed-val');
+        if (speedLbl && typeof stats.speedKmh !== 'undefined') {
+            speedLbl.textContent = stats.speedKmh + ' km/h';
+        }
+        setBar('accel', stats.accel);
+        setBar('braking', stats.braking);
+        setBar('traction', stats.traction);
     }
 
     function updateWheelOptions(options) {

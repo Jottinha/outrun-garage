@@ -263,6 +263,53 @@ body {
     font-style: italic;
 }
 
+/* ===== Performance Stats ===== */
+
+.stats-panel {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.stat-row:last-child { margin-bottom: 0; }
+
+.stat-label {
+    font-size: 11px;
+    color: #aaa;
+    width: 78px;
+    flex-shrink: 0;
+}
+
+.stat-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.stat-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff4500, #ff7a3c);
+    border-radius: 4px;
+    transition: width 0.35s ease;
+}
+
+.stat-val {
+    font-size: 11px;
+    color: #ff7a3c;
+    width: 58px;
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
 .customize-body {
     flex: 1;
     overflow-y: auto;

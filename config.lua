@@ -18,6 +18,40 @@ Config.PreviewLocation = vector4(-1025.6, -2728.3, 13.8, 330.0)
 -- Usar routing bucket para isolar o jogador durante o preview
 Config.UseRoutingBucket = true
 
+-- Valores de referência para normalizar as barras de performance (0-100%).
+-- As natives devolvem floats brutos; cada stat é dividido pelo seu "máximo"
+-- aqui pra virar porcentagem. Calibre se quiser que os carros mais rápidos
+-- batam perto de 100%.
+--   speed    -> GetVehicleEstimatedMaxSpeed (em km/h, já convertido)
+--   accel    -> GetVehicleAcceleration
+--   braking  -> GetVehicleMaxBraking
+--   traction -> GetVehicleMaxTraction
+Config.PerfStats = {
+    maxSpeed    = 210.0, -- km/h (teto da barra; acima do carro mais rápido)
+    maxAccel    = 0.5,
+    maxBraking  = 1.2,
+    maxTraction = 2.6,
+}
+
+-- Top speed REAL (km/h) por modelo, medido em pista por Broughy1322 com o
+-- carro totalmente upgradado. É o valor exibido em km/h ao lado da barra e
+-- usado para o preenchimento dela. Fixo por modelo (no GTA o teto de
+-- velocidade praticamente não muda com mods). Carros fora desta tabela caem
+-- no fallback GetVehicleEstimatedMaxSpeed.
+-- Fonte: gta5rides.com / gtacars.net (testes Broughy1322).
+Config.TopSpeeds = {
+    adder    = 200.8,
+    zentorno = 196.3,
+    t20      = 196.7,
+    turismor = 195.9,
+    entityxf = 195.5,
+    comet2   = 192.3,
+    elegy2   = 190.7,
+    banshee  = 189.5,
+    infernus = 189.5,
+    sultan   = 186.3,
+}
+
 -- Veículos disponíveis para aquisição gratuita
 Config.AllowedVehicles = {
     { model = 'adder',     label = 'Adder' },
