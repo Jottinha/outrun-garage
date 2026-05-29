@@ -9,6 +9,23 @@ local perfMods = {
     {id = 'armor',        label = 'Blindagem',   modType = 16},
 }
 
+-- Peças visuais (carroceria). Mesmas natives dos mods de performance;
+-- só aparecem se o veículo tiver opções (GetNumVehicleMods > 0).
+local visualMods = {
+    {id = 'spoiler',      label = 'Aerofólio',          modType = 0},
+    {id = 'frontBumper',  label = 'Para-choque Diant.', modType = 1},
+    {id = 'rearBumper',   label = 'Para-choque Tras.',  modType = 2},
+    {id = 'skirt',        label = 'Saias Laterais',     modType = 3},
+    {id = 'exhaust',      label = 'Escapamento',        modType = 4},
+    {id = 'frame',        label = 'Chassi',             modType = 5},
+    {id = 'grille',       label = 'Grade',              modType = 6},
+    {id = 'hood',         label = 'Capô',               modType = 7},
+    {id = 'fender',       label = 'Para-lama',          modType = 8},
+    {id = 'rightFender',  label = 'Para-lama Dir.',     modType = 9},
+    {id = 'roof',         label = 'Teto',               modType = 10},
+    {id = 'livery',       label = 'Adesivo',            modType = 48},
+}
+
 local modLabels = {
     [-1] = 'Stock',
     [0]  = 'Nível 1',
@@ -66,20 +83,33 @@ function OpenCustomsMenu(vehicle, model)
             for i = 0, num - 1 do
                 opts[#opts+1] = {index = i, label = modLabels[i] or ('Nível ' .. (i + 1)), selected = (cur == i)}
             end
-            categories[#categories+1] = {id = cat.id, label = cat.label, type = 'mod', modType = cat.modType, options = opts}
+            categories[#categories+1] = {id = cat.id, label = cat.label, type = 'mod', modType = cat.modType, options = opts, group = 'performance'}
+        end
+    end
+
+    -- Peças visuais (carroceria)
+    for _, cat in ipairs(visualMods) do
+        local num = GetNumVehicleMods(vehicle, cat.modType)
+        if num > 0 then
+            local cur = GetVehicleMod(vehicle, cat.modType)
+            local opts = {{index = -1, label = 'Padrão', selected = (cur == -1)}}
+            for i = 0, num - 1 do
+                opts[#opts+1] = {index = i, label = 'Opção ' .. (i + 1), selected = (cur == i)}
+            end
+            categories[#categories+1] = {id = cat.id, label = cat.label, type = 'mod', modType = cat.modType, options = opts, group = 'visual'}
         end
     end
 
     -- Turbo
     categories[#categories+1] = {
         id = 'turbo', label = 'Turbo', type = 'toggle',
-        modType = 18, enabled = IsToggleModOn(vehicle, 18),
+        modType = 18, enabled = IsToggleModOn(vehicle, 18), group = 'performance',
     }
 
     -- Xenon
     categories[#categories+1] = {
         id = 'xenon', label = 'Faróis Xenon', type = 'toggle',
-        modType = 22, enabled = IsToggleModOn(vehicle, 22),
+        modType = 22, enabled = IsToggleModOn(vehicle, 22), group = 'visual',
     }
 
     -- Cores
@@ -87,17 +117,17 @@ function OpenCustomsMenu(vehicle, model)
 
     categories[#categories+1] = {
         id = 'primaryColor', label = 'Cor Primária', type = 'color',
-        target = 'primary', currentColor = primary, options = Config.Colors,
+        target = 'primary', currentColor = primary, options = Config.Colors, group = 'paint',
     }
     categories[#categories+1] = {
         id = 'secondaryColor', label = 'Cor Secundária', type = 'color',
-        target = 'secondary', currentColor = secondary, options = Config.Colors,
+        target = 'secondary', currentColor = secondary, options = Config.Colors, group = 'paint',
     }
 
     -- Tipo de roda
     categories[#categories+1] = {
         id = 'wheelType', label = 'Tipo de Roda', type = 'wheelType',
-        currentType = GetVehicleWheelType(vehicle), options = Config.WheelTypes,
+        currentType = GetVehicleWheelType(vehicle), options = Config.WheelTypes, group = 'wheels',
     }
 
     -- Modelo de roda
@@ -109,13 +139,13 @@ function OpenCustomsMenu(vehicle, model)
     end
     categories[#categories+1] = {
         id = 'wheelIndex', label = 'Modelo de Roda', type = 'mod',
-        modType = 23, options = wOpts,
+        modType = 23, options = wOpts, group = 'wheels',
     }
 
     -- Película
     categories[#categories+1] = {
         id = 'windowTint', label = 'Película', type = 'tint',
-        currentTint = GetVehicleWindowTint(vehicle), options = Config.WindowTints,
+        currentTint = GetVehicleWindowTint(vehicle), options = Config.WindowTints, group = 'windows',
     }
 
     SetNuiFocus(true, true)

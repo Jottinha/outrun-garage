@@ -5,7 +5,6 @@
     var allowedVehicles = [];
     var maxVehicles = 5;
     var currentCategories = [];
-    var selectedCategoryIndex = -1;
 
     var resourceName = typeof GetParentResourceName !== 'undefined' ? GetParentResourceName() : 'outrun-garage';
 
@@ -157,38 +156,107 @@
 
     // ==================== Customização ====================
 
+    // Seções (abas) na ordem de exibição. Só aparecem as que têm categorias.
+    var SECTIONS = [
+        {id: 'performance', label: 'Performance'},
+        {id: 'visual',      label: 'Visual'},
+        {id: 'paint',       label: 'Pintura'},
+        {id: 'wheels',      label: 'Rodas'},
+        {id: 'windows',     label: 'Vidros'}
+    ];
+    var activeSection = null;
+    var openCategoryId = null;
+
+    function categoriesInSection(sectionId) {
+        return currentCategories.filter(function (c) {
+            return (c.group || 'visual') === sectionId;
+        });
+    }
+
     function showCustomize(categories) {
-        currentCategories = categories;
-        selectedCategoryIndex = -1;
+        currentCategories = categories || [];
+        openCategoryId = null;
 
         document.getElementById('app').style.display = 'flex';
         document.getElementById('garage-menu').style.display = 'none';
         document.getElementById('vehicle-picker').style.display = 'none';
         document.getElementById('customize-menu').style.display = 'flex';
 
-        renderCategories();
-        document.getElementById('options-panel').innerHTML = '<p class="options-hint">Selecione uma categoria</p>';
+        // Seleciona a primeira seção que tenha categorias
+        activeSection = null;
+        for (var i = 0; i < SECTIONS.length; i++) {
+            if (categoriesInSection(SECTIONS[i].id).length) {
+                activeSection = SECTIONS[i].id;
+                break;
+            }
+        }
+
+        renderSectionTabs();
+        renderSection();
+
+        // Foca a primeira categoria para a navegação por teclado já funcionar
+        var first = document.querySelector('#section-content .accordion-head');
+        if (first) first.focus();
     }
 
-    function renderCategories() {
-        var catList = document.getElementById('category-list');
-        catList.innerHTML = '';
+    function renderSectionTabs() {
+        var tabs = document.getElementById('section-tabs');
+        tabs.innerHTML = '';
 
-        currentCategories.forEach(function (cat, idx) {
+        SECTIONS.forEach(function (sec) {
+            if (!categoriesInSection(sec.id).length) return;
             var btn = document.createElement('button');
-            btn.className = 'category-btn' + (idx === selectedCategoryIndex ? ' active' : '');
-            btn.textContent = cat.label;
+            btn.className = 'section-tab' + (sec.id === activeSection ? ' active' : '');
+            btn.textContent = sec.label;
             btn.addEventListener('click', function () {
-                selectedCategoryIndex = idx;
-                renderCategories();
-                renderOptions(cat);
+                if (activeSection === sec.id) return;
+                activeSection = sec.id;
+                openCategoryId = null;
+                renderSectionTabs();
+                renderSection();
             });
-            catList.appendChild(btn);
+            tabs.appendChild(btn);
         });
     }
 
-    function renderOptions(category) {
-        var panel = document.getElementById('options-panel');
+    function renderSection() {
+        var content = document.getElementById('section-content');
+        content.innerHTML = '';
+
+        var cats = categoriesInSection(activeSection);
+        if (!cats.length) {
+            content.innerHTML = '<p class="options-hint">Nada disponível aqui.</p>';
+            return;
+        }
+
+        cats.forEach(function (cat) {
+            var isOpen = (cat.id === openCategoryId);
+
+            var item = document.createElement('div');
+            item.className = 'accordion-item';
+
+            var head = document.createElement('button');
+            head.className = 'accordion-head' + (isOpen ? ' open' : '');
+            head.dataset.catId = cat.id;
+            head.innerHTML = '<span>' + escapeHtml(cat.label) + '</span><span class="chev">&#9656;</span>';
+            head.addEventListener('click', function () {
+                openCategoryId = isOpen ? null : cat.id;
+                renderSection();
+            });
+            item.appendChild(head);
+
+            if (isOpen) {
+                var body = document.createElement('div');
+                body.className = 'accordion-body';
+                renderOptions(body, cat);
+                item.appendChild(body);
+            }
+
+            content.appendChild(item);
+        });
+    }
+
+    function renderOptions(panel, category) {
         panel.innerHTML = '';
 
         if (category.type === 'mod') {
@@ -229,6 +297,7 @@
             swatch.className = 'color-swatch' + (color.id === category.currentColor ? ' selected' : '');
             swatch.style.backgroundColor = color.hex;
             swatch.title = color.name;
+            swatch.tabIndex = 0;
             swatch.addEventListener('click', function () {
                 grid.querySelectorAll('.color-swatch').forEach(function (s) { s.classList.remove('selected'); });
                 swatch.classList.add('selected');
@@ -251,6 +320,7 @@
 
         var toggle = document.createElement('div');
         toggle.className = 'toggle-switch' + (category.enabled ? ' on' : '');
+        toggle.tabIndex = 0;
         toggle.addEventListener('click', function () {
             category.enabled = !category.enabled;
             toggle.classList.toggle('on');
@@ -318,8 +388,8 @@
         for (var i = 0; i < currentCategories.length; i++) {
             if (currentCategories[i].id === 'wheelIndex') {
                 currentCategories[i].options = options;
-                if (selectedCategoryIndex === i) {
-                    renderOptions(currentCategories[i]);
+                if (openCategoryId === 'wheelIndex') {
+                    renderSection();
                 }
                 break;
             }
@@ -333,6 +403,83 @@
         document.getElementById('customize-menu').style.display = 'none';
         isDragging = false;
     }
+
+    // ==================== Navegação por teclado ====================
+
+    function customizeOpen() {
+        return document.getElementById('customize-menu').style.display !== 'none';
+    }
+
+    // Abas visíveis (que têm categorias), na ordem de SECTIONS
+    function visibleSections() {
+        return SECTIONS.filter(function (s) {
+            return categoriesInSection(s.id).length;
+        });
+    }
+
+    // ←/→ : troca de seção e foca a primeira categoria dela
+    function moveSection(dir) {
+        var vis = visibleSections();
+        if (!vis.length) return;
+        var idx = 0;
+        for (var i = 0; i < vis.length; i++) {
+            if (vis[i].id === activeSection) { idx = i; break; }
+        }
+        idx = (idx + dir + vis.length) % vis.length;
+        activeSection = vis[idx].id;
+        openCategoryId = null;
+        renderSectionTabs();
+        renderSection();
+        var first = document.querySelector('#section-content .accordion-head');
+        if (first) first.focus();
+    }
+
+    // Elementos navegáveis na ordem do DOM (categorias + opções abertas)
+    function navItems() {
+        return Array.prototype.slice.call(document.querySelectorAll(
+            '#section-content .accordion-head, ' +
+            '#section-content .accordion-body .option-btn, ' +
+            '#section-content .accordion-body .color-swatch, ' +
+            '#section-content .accordion-body .toggle-switch'
+        ));
+    }
+
+    // ↑/↓ : move o foco entre os elementos navegáveis
+    function moveFocus(dir) {
+        var items = navItems();
+        if (!items.length) return;
+        var idx = items.indexOf(document.activeElement);
+        if (idx === -1) { items[dir > 0 ? 0 : items.length - 1].focus(); return; }
+        idx = Math.max(0, Math.min(items.length - 1, idx + dir));
+        items[idx].focus();
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (!customizeOpen()) return;
+
+        switch (e.key) {
+            case 'ArrowRight': e.preventDefault(); moveSection(1); break;
+            case 'ArrowLeft':  e.preventDefault(); moveSection(-1); break;
+            case 'ArrowDown':  e.preventDefault(); moveFocus(1); break;
+            case 'ArrowUp':    e.preventDefault(); moveFocus(-1); break;
+            case 'Enter':
+            case ' ': {
+                var el = document.activeElement;
+                if (!el || !el.closest('#section-content')) return;
+                e.preventDefault();
+                // Se for um cabeçalho de categoria, ele será recriado ao abrir/
+                // fechar; guardamos o id para refocar o mesmo cabeçalho depois.
+                var catId = el.classList.contains('accordion-head') ? el.dataset.catId : null;
+                el.click();
+                if (catId) {
+                    var again = document.querySelector(
+                        '#section-content .accordion-head[data-cat-id="' + catId + '"]');
+                    if (again) again.focus();
+                }
+                break;
+            }
+        }
+    });
 
     // Drag para rotacionar câmera 360° (clica e arrasta fora do painel)
     var isDragging = false;
