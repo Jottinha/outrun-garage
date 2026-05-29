@@ -7,6 +7,32 @@ local currentPlate = nil
 local previewCam = nil
 local camAngle = 0.0
 
+-- Posiciona a câmera orbital usando os parâmetros do Config (raio/altura/mira)
+local function PositionPreviewCam()
+    if not previewCam or not previewVehicle or not DoesEntityExist(previewVehicle) then return end
+    local cam = Config.PreviewCam
+    local v = GetEntityCoords(previewVehicle)
+    local rad = math.rad(camAngle)
+    SetCamCoord(previewCam,
+        v.x - cam.distance * math.sin(rad),
+        v.y + cam.distance * math.cos(rad),
+        v.z + cam.height)
+    PointCamAtCoord(previewCam, v.x, v.y, v.z + cam.lookZ)
+end
+
+-- Carrega o interior do Auto Shop (IPL + entity sets) via bob74_ipl
+local function LoadAutoShop()
+    if not Config.UseAutoShop then return end
+    local ok, obj = pcall(function() return exports['bob74_ipl']:GetTunerGarageObject() end)
+    if ok and obj and obj.LoadDefault then obj.LoadDefault() end
+end
+
+local function UnloadAutoShop()
+    if not Config.UseAutoShop then return end
+    local ok, obj = pcall(function() return exports['bob74_ipl']:GetTunerGarageObject() end)
+    if ok and obj and obj.Ipl and obj.Ipl.Remove then obj.Ipl.Remove() end
+end
+
 -- Abre o menu principal
 RegisterCommand(Config.Command, function()
     if currentState ~= 'idle' then return end
@@ -78,6 +104,7 @@ function ExitPreview()
         savedCoords = nil
     end
 
+    UnloadAutoShop()
     currentState = 'idle'
 end
 
@@ -128,9 +155,20 @@ RegisterNUICallback('customizeVehicle', function(data, cb)
 
         TriggerServerEvent('outrun-garage:server:enterPreview')
 
+        LoadAutoShop()
+
         local loc = Config.PreviewLocation
         SetEntityCoords(ped, loc.x, loc.y, loc.z, false, false, false, false)
         SetEntityHeading(ped, loc.w)
+        RequestCollisionAtCoord(loc.x, loc.y, loc.z)
+
+        -- Garante que o interior carregou antes de spawnar o carro
+        local interior = GetInteriorAtCoords(loc.x, loc.y, loc.z)
+        if interior ~= 0 then
+            LoadInterior(interior)
+            local it = 0
+            while not IsInteriorReady(interior) and it < 5000 do Wait(50); it = it + 50 end
+        end
         Wait(500)
 
         local hash = GetHashKey(data.model)
@@ -147,9 +185,10 @@ RegisterNUICallback('customizeVehicle', function(data, cb)
         end
 
         ped = PlayerPedId()
-        local fwd = GetEntityForwardVector(ped)
-        local pos = GetEntityCoords(ped) + fwd * 5.0
-        previewVehicle = CreateVehicle(hash, pos.x, pos.y, pos.z, loc.w + 180.0, true, false)
+        -- O carro nasce exatamente no ponto capturado (sobre o elevador),
+        -- com o heading capturado. O player (invisível) fica ao lado só para
+        -- manter o interior carregado.
+        previewVehicle = CreateVehicle(hash, loc.x, loc.y, loc.z, loc.w, true, false)
         SetModelAsNoLongerNeeded(hash)
 
         if not previewVehicle or previewVehicle == 0 then
@@ -174,15 +213,9 @@ RegisterNUICallback('customizeVehicle', function(data, cb)
         SetEntityVisible(ped, false, false)
 
         -- Câmera 3/4 com rotação por drag do mouse
-        local vehCoords = GetEntityCoords(previewVehicle)
         camAngle = GetEntityHeading(previewVehicle) + 30.0
-        local rad = math.rad(camAngle)
         previewCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-        SetCamCoord(previewCam,
-            vehCoords.x - 6.0 * math.sin(rad),
-            vehCoords.y + 6.0 * math.cos(rad),
-            vehCoords.z + 1.5)
-        PointCamAtCoord(previewCam, vehCoords.x, vehCoords.y, vehCoords.z + 0.3)
+        PositionPreviewCam()
         SetCamFov(previewCam, 45.0)
         SetCamActive(previewCam, true)
         RenderScriptCams(true, true, 500, true, true)
@@ -217,13 +250,7 @@ RegisterNUICallback('rotateCam', function(data, cb)
     cb('ok')
     if not previewCam or not previewVehicle or not DoesEntityExist(previewVehicle) then return end
     camAngle = camAngle - data.deltaX * 0.3
-    local vehCoords = GetEntityCoords(previewVehicle)
-    local rad = math.rad(camAngle)
-    SetCamCoord(previewCam,
-        vehCoords.x - 6.0 * math.sin(rad),
-        vehCoords.y + 6.0 * math.cos(rad),
-        vehCoords.z + 1.5)
-    PointCamAtCoord(previewCam, vehCoords.x, vehCoords.y, vehCoords.z + 0.3)
+    PositionPreviewCam()
 end)
 
 -- Limpar se o resource parar (dev/restart)
@@ -245,6 +272,7 @@ AddEventHandler('onResourceStop', function(resourceName)
         if savedCoords then
             SetEntityCoords(ped, savedCoords.x, savedCoords.y, savedCoords.z, false, false, false, false)
         end
+        UnloadAutoShop()
         TriggerServerEvent('outrun-garage:server:exitPreview')
     end
 end)

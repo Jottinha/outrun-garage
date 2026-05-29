@@ -13,7 +13,20 @@ Config.DefaultGarage = 'outrun'
 Config.PlatePrefix = 'OUT'
 
 -- Local de preview para customização (vector4: x, y, z, heading)
-Config.PreviewLocation = vector4(-1025.6, -2728.3, 13.8, 330.0)
+-- Ponto interno do Auto Shop (DLC Tuner), sobre o elevador.
+Config.PreviewLocation = vector4(-1328.17, 141.73, -99.19, 47.0)
+
+-- Carregar o interior do Auto Shop (DLC Tuner) e fazer o preview lá dentro.
+-- Requer bob74_ipl e game build >= 2372 (servidor está em 3095).
+Config.UseAutoShop = true
+Config.AutoShopInterior = 285953
+
+-- Câmera do preview (ajuste fino do enquadramento no interior fechado)
+Config.PreviewCam = {
+    distance = 4.5, -- raio da órbita (menor para caber no Auto Shop)
+    height   = 1.2, -- altura da câmera acima do carro
+    lookZ    = 0.3, -- altura do ponto que a câmera mira
+}
 
 -- Usar routing bucket para isolar o jogador durante o preview
 Config.UseRoutingBucket = true
