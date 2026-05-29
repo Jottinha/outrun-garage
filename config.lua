@@ -3,6 +3,10 @@ Config = {}
 -- Comando para abrir a garagem
 Config.Command = 'garage'
 
+-- Tecla padrão para abrir a garagem (reconfigurável em Configurações > Teclas
+-- do FiveM). Deixe '' para não registrar atalho.
+Config.OpenKey = 'G'
+
 -- Máximo de veículos por jogador
 Config.MaxVehiclesPerPlayer = 5
 

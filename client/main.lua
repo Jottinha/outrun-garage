@@ -46,6 +46,11 @@ RegisterCommand(Config.Command, function()
     OpenGarage()
 end, false)
 
+-- Atalho de teclado para abrir a garagem (reconfigurável nas opções do FiveM)
+if Config.OpenKey and Config.OpenKey ~= '' then
+    RegisterKeyMapping(Config.Command, 'Abrir Outrun Garage', 'keyboard', Config.OpenKey)
+end
+
 function OpenGarage()
     currentState = 'menu'
 
