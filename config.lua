@@ -73,9 +73,10 @@ Config.TopSpeeds = {
 
 -- Veículos disponíveis para aquisição gratuita
 Config.AllowedVehicles = {
-    { model = 'zentorno',  label = 'Zentorno' },
+    { model = 'S95',  label = 'S95' },
+    { model = 'futo2',  label = 'Futo GTX' },
+    { model = 'feltzer2',  label = 'Feltzer' },
     { model = 'sultan',    label = 'Sultan' },
-    { model = 't20',       label = 'T20' },
     -- Add-on (resource [cars]/skyline_gtr_bnr34). Só funciona com o modelo streamado.
     { model = 'skyline',   label = 'Skyline GT-R R34' },
     -- Add-ons importados ([cars]/z48, /zagato). Top speed via fallback.
