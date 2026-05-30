@@ -291,26 +291,175 @@
         });
     }
 
-    function renderColorOptions(panel, category) {
-        var grid = document.createElement('div');
-        grid.className = 'color-grid';
+    // ---------- Helpers de cor ----------
+    function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
-        category.options.forEach(function (color) {
-            var swatch = document.createElement('div');
-            swatch.className = 'color-swatch' + (color.id === category.currentColor ? ' selected' : '');
-            swatch.style.backgroundColor = color.hex;
-            swatch.title = color.name;
-            swatch.tabIndex = 0;
-            swatch.addEventListener('click', function () {
-                grid.querySelectorAll('.color-swatch').forEach(function (s) { s.classList.remove('selected'); });
-                swatch.classList.add('selected');
-                category.currentColor = color.id;
-                post('applyColor', {target: category.target, colorId: color.id});
+    function rgbToHex(r, g, b) {
+        function h(n) { n = clamp(Math.round(n), 0, 255).toString(16); return n.length < 2 ? '0' + n : n; }
+        return '#' + h(r) + h(g) + h(b);
+    }
+    function hexToRgb(hex) {
+        hex = (hex || '').replace('#', '').trim();
+        if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+        return { r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16) };
+    }
+    function rgbToHsv(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+        var h = 0, s = max === 0 ? 0 : d / max, v = max;
+        if (d !== 0) {
+            if (max === r) h = ((g - b) / d) % 6;
+            else if (max === g) h = (b - r) / d + 2;
+            else h = (r - g) / d + 4;
+            h *= 60; if (h < 0) h += 360;
+        }
+        return { h: h, s: s, v: v };
+    }
+    function hsvToRgb(h, s, v) {
+        var c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c, r = 0, g = 0, b = 0;
+        if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+        else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+        return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+    }
+
+    function renderColorOptions(panel, category) {
+        var cur = category.current || { r: 255, g: 255, b: 255, paint: 0 };
+        var state = { r: cur.r, g: cur.g, b: cur.b, paint: cur.paint || 0 };
+        var hsv = rgbToHsv(state.r, state.g, state.b);
+
+        var wrap = document.createElement('div');
+        wrap.className = 'color-picker';
+
+        // Quadro Saturação x Brilho (canvas) com marcador
+        var svBox = document.createElement('div');
+        svBox.className = 'cp-sv-box';
+        var sv = document.createElement('canvas');
+        sv.className = 'cp-sv'; sv.width = 240; sv.height = 150;
+        var svCtx = sv.getContext('2d');
+        var marker = document.createElement('div');
+        marker.className = 'cp-sv-marker';
+        svBox.appendChild(sv); svBox.appendChild(marker);
+
+        // Slider de matiz (hue)
+        var hue = document.createElement('input');
+        hue.type = 'range'; hue.min = 0; hue.max = 360; hue.value = Math.round(hsv.h);
+        hue.className = 'cp-hue';
+
+        // Preview + campo hex
+        var row = document.createElement('div'); row.className = 'cp-row';
+        var preview = document.createElement('div'); preview.className = 'cp-preview';
+        var hex = document.createElement('input');
+        hex.type = 'text'; hex.className = 'cp-hex'; hex.maxLength = 7; hex.spellcheck = false;
+        row.appendChild(preview); row.appendChild(hex);
+
+        // Botões de acabamento
+        var paintRow = document.createElement('div'); paintRow.className = 'cp-paints';
+        (category.paintTypes || []).forEach(function (pt) {
+            var b = document.createElement('button');
+            b.className = 'cp-paint' + (pt.id === state.paint ? ' selected' : '');
+            b.textContent = pt.name;
+            b.addEventListener('click', function () {
+                state.paint = pt.id;
+                paintRow.querySelectorAll('.cp-paint').forEach(function (x) { x.classList.remove('selected'); });
+                b.classList.add('selected');
+                apply(true);
             });
-            grid.appendChild(swatch);
+            paintRow.appendChild(b);
         });
 
-        panel.appendChild(grid);
+        // Atalhos (swatches de cor exata)
+        var grid = document.createElement('div'); grid.className = 'color-grid';
+        (category.swatches || []).forEach(function (c) {
+            var sw = document.createElement('div');
+            sw.className = 'color-swatch';
+            sw.style.backgroundColor = c.hex;
+            sw.title = c.name; sw.tabIndex = 0;
+            sw.addEventListener('click', function () {
+                var rgb = hexToRgb(c.hex); if (!rgb) return;
+                state.r = rgb.r; state.g = rgb.g; state.b = rgb.b;
+                hsv = rgbToHsv(state.r, state.g, state.b);
+                hue.value = Math.round(hsv.h);
+                redraw(); apply(true);
+            });
+            grid.appendChild(sw);
+        });
+
+        var lbl = document.createElement('div'); lbl.className = 'cp-label'; lbl.textContent = 'Atalhos';
+        wrap.appendChild(svBox); wrap.appendChild(hue); wrap.appendChild(row);
+        wrap.appendChild(paintRow); wrap.appendChild(lbl); wrap.appendChild(grid);
+        panel.appendChild(wrap);
+
+        // Envio com throttle (evita inundar o NUI durante o arraste)
+        var lastSent = 0, pending = null;
+        function send() {
+            post('applyColor', { target: category.target, r: state.r, g: state.g, b: state.b, paint: state.paint });
+        }
+        function apply(force) {
+            var now = Date.now();
+            if (pending) { clearTimeout(pending); pending = null; }
+            if (force || now - lastSent > 60) { lastSent = now; send(); }
+            else { pending = setTimeout(function () { lastSent = Date.now(); send(); pending = null; }, 60); }
+        }
+
+        function drawSV() {
+            var base = hsvToRgb(parseFloat(hue.value), 1, 1);
+            svCtx.fillStyle = 'rgb(' + base.r + ',' + base.g + ',' + base.b + ')';
+            svCtx.fillRect(0, 0, sv.width, sv.height);
+            var gx = svCtx.createLinearGradient(0, 0, sv.width, 0);
+            gx.addColorStop(0, 'rgba(255,255,255,1)'); gx.addColorStop(1, 'rgba(255,255,255,0)');
+            svCtx.fillStyle = gx; svCtx.fillRect(0, 0, sv.width, sv.height);
+            var gy = svCtx.createLinearGradient(0, 0, 0, sv.height);
+            gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(1, 'rgba(0,0,0,1)');
+            svCtx.fillStyle = gy; svCtx.fillRect(0, 0, sv.width, sv.height);
+        }
+        function redraw() {
+            drawSV();
+            marker.style.left = (hsv.s * 100) + '%';
+            marker.style.top = ((1 - hsv.v) * 100) + '%';
+            var hx = rgbToHex(state.r, state.g, state.b);
+            preview.style.backgroundColor = hx;
+            if (document.activeElement !== hex) hex.value = hx.toUpperCase();
+        }
+
+        function pickSV(e) {
+            var rect = sv.getBoundingClientRect();
+            hsv.s = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+            hsv.v = 1 - clamp((e.clientY - rect.top) / rect.height, 0, 1);
+            var rgb = hsvToRgb(parseFloat(hue.value), hsv.s, hsv.v);
+            state.r = rgb.r; state.g = rgb.g; state.b = rgb.b;
+            redraw(); apply(false);
+        }
+        function onMove(e) { pickSV(e); }
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            apply(true);
+        }
+        svBox.addEventListener('mousedown', function (e) {
+            pickSV(e);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+
+        hue.addEventListener('input', function () {
+            hsv.h = parseFloat(hue.value);
+            var rgb = hsvToRgb(hsv.h, hsv.s, hsv.v);
+            state.r = rgb.r; state.g = rgb.g; state.b = rgb.b;
+            redraw(); apply(false);
+        });
+        hue.addEventListener('change', function () { apply(true); });
+
+        hex.addEventListener('change', function () {
+            var rgb = hexToRgb(hex.value);
+            if (!rgb) { redraw(); return; }
+            state.r = rgb.r; state.g = rgb.g; state.b = rgb.b;
+            hsv = rgbToHsv(state.r, state.g, state.b);
+            hue.value = Math.round(hsv.h);
+            redraw(); apply(true);
+        });
+
+        redraw();
     }
 
     function renderToggle(panel, category) {

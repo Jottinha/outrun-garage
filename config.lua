@@ -90,7 +90,7 @@ Config.AllowedVehicles = {
     { model = 'zagato',      label = 'Aston Martin DBS GT Zagato' },
 }
 
--- Paleta de cores para customização (id = cor GTA, hex = aproximação para UI)
+-- Paleta de atalhos de cor. hex = cor EXATA aplicada no carro (RGB custom).
 Config.Colors = {
     { id = 0,   name = 'Preto',             hex = '#0d1116' },
     { id = 1,   name = 'Grafite',           hex = '#1c1d21' },
@@ -143,6 +143,12 @@ Config.Colors = {
     { id = 159, name = 'Mate Cinza',        hex = '#252527' },
 }
 
+-- Tipos de acabamento de pintura (GTA paint type), aplicados junto da cor RGB.
+Config.PaintTypes = {
+    { id = 0, name = 'Brilhante' },
+    { id = 1, name = 'Metálico' },
+    { id = 3, name = 'Fosco' },
+}
 -- Películas de vidro disponíveis
 Config.WindowTints = {
     { id = 0, name = 'Nenhuma' },

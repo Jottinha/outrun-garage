@@ -206,6 +206,7 @@ RegisterNUICallback('spawnVehicle', function(data, cb)
         -- Aplica a customização salva (se houver)
         if data.mods and type(data.mods) == 'table' and next(data.mods) then
             QBCore.Functions.SetVehicleProperties(veh, data.mods)
+            ReapplyPaint(veh, data.mods) -- reaplica acabamento + cor RGB custom
         end
 
         TaskWarpPedIntoVehicle(ped, veh, -1)
@@ -283,6 +284,7 @@ RegisterNUICallback('customizeVehicle', function(data, cb)
 
         if data.mods and type(data.mods) == 'table' and next(data.mods) then
             QBCore.Functions.SetVehicleProperties(previewVehicle, data.mods)
+            ReapplyPaint(previewVehicle, data.mods) -- reaplica acabamento + cor custom
         end
 
         FreezeEntityPosition(ped, true)
@@ -306,6 +308,7 @@ RegisterNUICallback('saveCustomize', function(_, cb)
     if not previewVehicle or currentState ~= 'customizing' then return end
 
     local props = QBCore.Functions.GetVehicleProperties(previewVehicle)
+    AugmentPaintProps(previewVehicle, props) -- guarda o paint type (acabamento)
 
     QBCore.Functions.TriggerCallback('outrun-garage:server:saveMods', function(success)
         if success then
