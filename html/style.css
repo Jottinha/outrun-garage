@@ -164,6 +164,16 @@ body {
 }
 .btn-customize:hover { background: #ff5a1f; }
 
+.btn-spawn {
+    background: rgba(39, 174, 96, 0.25);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.4);
+}
+.btn-spawn:hover {
+    background: rgba(39, 174, 96, 0.6);
+    color: #fff;
+}
+
 .btn-delete {
     background: rgba(192, 57, 43, 0.3);
     color: #e74c3c;

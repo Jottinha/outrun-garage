@@ -101,6 +101,7 @@
                         '<span class="plate">' + escapeHtml(v.plate) + '</span>' +
                     '</div>' +
                     '<div class="vehicle-actions">' +
+                        '<button class="btn-sm btn-spawn" data-action="spawn" data-index="' + idx + '">SPAWN</button>' +
                         '<button class="btn-sm btn-customize" data-action="customize" data-index="' + idx + '">CUSTOMIZAR</button>' +
                         '<button class="btn-sm btn-delete" data-action="delete" data-index="' + idx + '">X</button>' +
                     '</div>';
@@ -119,7 +120,9 @@
             var vehicle = currentVehicles[idx];
             if (!vehicle) return;
 
-            if (btn.dataset.action === 'customize') {
+            if (btn.dataset.action === 'spawn') {
+                post('spawnVehicle', {plate: vehicle.plate, model: vehicle.model, mods: vehicle.mods, label: vehicle.label});
+            } else if (btn.dataset.action === 'customize') {
                 post('customizeVehicle', {plate: vehicle.plate, model: vehicle.model, mods: vehicle.mods});
             } else if (btn.dataset.action === 'delete') {
                 post('deleteVehicle', {plate: vehicle.plate});

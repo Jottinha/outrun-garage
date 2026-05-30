@@ -67,6 +67,8 @@ Config.TopSpeeds = {
     banshee  = 189.5,
     infernus = 189.5,
     sultan   = 186.3,
+    -- Add-on Skyline GT-R R34: top speed medido em pista (km/h).
+    skyline  = 190.0,
 }
 
 -- Veículos disponíveis para aquisição gratuita
@@ -81,6 +83,8 @@ Config.AllowedVehicles = {
     { model = 'banshee',   label = 'Banshee' },
     { model = 'infernus',  label = 'Infernus' },
     { model = 'entityxf',  label = 'Entity XF' },
+    -- Add-on (resource [cars]/skyline_gtr_bnr34). Só funciona com o modelo streamado.
+    { model = 'skyline',   label = 'Skyline GT-R R34' },
 }
 
 -- Paleta de cores para customização (id = cor GTA, hex = aproximação para UI)

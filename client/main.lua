@@ -6,6 +6,7 @@ local savedCoords = nil
 local currentPlate = nil
 local previewCam = nil
 local camAngle = 0.0
+local spawnedVehicle = nil -- último carro spawnado pelo botão SPAWN da garagem
 
 -- Posiciona a câmera orbital usando os parâmetros do Config (raio/altura/mira)
 local function PositionPreviewCam()
@@ -142,6 +143,76 @@ RegisterNUICallback('deleteVehicle', function(data, cb)
         end
         RefreshMenu()
     end, data.plate)
+end)
+
+RegisterNUICallback('spawnVehicle', function(data, cb)
+    cb('ok')
+    if currentState ~= 'menu' then return end
+
+    -- Fecha o menu e libera o foco antes de spawnar
+    CloseMenu()
+
+    CreateThread(function()
+        local ped = PlayerPedId()
+
+        if IsPedInAnyVehicle(ped, false) then
+            QBCore.Functions.Notify('Saia do veículo primeiro.', 'error')
+            return
+        end
+
+        -- Remove o último carro spawnado por este menu (evita acúmulo a cada clique)
+        if spawnedVehicle and DoesEntityExist(spawnedVehicle) then
+            DeleteEntity(spawnedVehicle)
+        end
+        spawnedVehicle = nil
+
+        local hash = GetHashKey(data.model)
+        if not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then
+            QBCore.Functions.Notify('Modelo indisponível (não streamado?).', 'error')
+            return
+        end
+
+        RequestModel(hash)
+        local timeout = 0
+        while not HasModelLoaded(hash) and timeout < 10000 do
+            Wait(10)
+            timeout = timeout + 10
+        end
+        if not HasModelLoaded(hash) then
+            QBCore.Functions.Notify('Erro ao carregar modelo.', 'error')
+            return
+        end
+
+        -- Spawna 3m à frente do jogador, alinhado ao heading dele
+        local coords  = GetEntityCoords(ped)
+        local heading = GetEntityHeading(ped)
+        local fwd     = GetEntityForwardVector(ped)
+        local sx, sy, sz = coords.x + fwd.x * 3.0, coords.y + fwd.y * 3.0, coords.z
+
+        local veh = CreateVehicle(hash, sx, sy, sz, heading, true, false)
+        SetModelAsNoLongerNeeded(hash)
+
+        if not veh or veh == 0 then
+            QBCore.Functions.Notify('Erro ao criar veículo.', 'error')
+            return
+        end
+
+        SetVehicleOnGroundProperly(veh)
+        SetVehicleNumberPlateText(veh, data.plate or '')
+        SetVehicleModKit(veh, 0)
+        SetVehicleDirtLevel(veh, 0.0)
+        SetEntityAsMissionEntity(veh, true, true)
+
+        -- Aplica a customização salva (se houver)
+        if data.mods and type(data.mods) == 'table' and next(data.mods) then
+            QBCore.Functions.SetVehicleProperties(veh, data.mods)
+        end
+
+        TaskWarpPedIntoVehicle(ped, veh, -1)
+        spawnedVehicle = veh
+
+        QBCore.Functions.Notify('Veículo spawnado: ' .. (data.label or data.model), 'success')
+    end)
 end)
 
 RegisterNUICallback('customizeVehicle', function(data, cb)
