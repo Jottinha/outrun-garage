@@ -85,6 +85,9 @@ Config.AllowedVehicles = {
     { model = 'entityxf',  label = 'Entity XF' },
     -- Add-on (resource [cars]/skyline_gtr_bnr34). Só funciona com o modelo streamado.
     { model = 'skyline',   label = 'Skyline GT-R R34' },
+    -- Add-ons importados ([cars]/z48, /zagato). Top speed via fallback.
+    { model = 'z48',         label = 'BMW Z4' },
+    { model = 'zagato',      label = 'Aston Martin DBS GT Zagato' },
 }
 
 -- Paleta de cores para customização (id = cor GTA, hex = aproximação para UI)
